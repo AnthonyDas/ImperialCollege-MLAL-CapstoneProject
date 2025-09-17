@@ -1,2 +1,12 @@
 # ImperialCollege-MLAL-CapstoneProject
-Black Box Optimisation capstone project
+Black Box Optimisation Capstone Project
+
+## DATA
+
+## MODEL 
+
+## HYPERPARAMETER OPTIMIZATION
+
+## RESULTS
+
+## CONTACT DETAILS
