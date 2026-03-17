@@ -8,6 +8,11 @@ This Black-Box Optimisation (BBO) project replicates real-world engineering and 
 
 Although I'm a career software developer in finance, I haven't had any direct exposure to applying machine learning (ML) or artificial intelligence (AI) techniques. As AI is fast becoming ubiquitous in all walks of life, completing a Professional Certificate in Machine Learning and Artificial Intelligence, of which this BBO project is a part, was my way to learn more about what exactly ML and AI are. The course also acted as a useful way to learn Python and its relevant modules.
 
+## DOCUMENTS
+
+[Datasheet](https://github.com/AnthonyDas/ImperialCollege-MLAL-CapstoneProject/blob/main/Datasheet.md): Black-Box Optimisation Query Dataset Information
+
+[Model Card](https://github.com/AnthonyDas/ImperialCollege-MLAL-CapstoneProject/blob/main/Model%20Card.md) Black-Box Optimisation Gaussian Process Model
 
 ## INPUTS AND OUTPUTS
 
