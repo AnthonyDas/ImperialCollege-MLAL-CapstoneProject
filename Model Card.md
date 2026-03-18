@@ -66,3 +66,7 @@ After 11 of 13 available query submissions:
 The GP model assumes outputs can assume both positive and negative values. Where underlying BBO functions have a known floor or ceiling, the model would need adaptation/extension to obey the floor/ceiling. 
 
 ## Ethical Considerations
+
+The underlying BBO functions are understood to be synthetic in nature, created expressly for the provision of an educational capstone project. As such, the model does not create or reinforce any biases against any population or demographic.
+ 
+All capstone project documents, datasets, code and artefacts are publicly available within the parent GitHub repository with the expressed aim of making technical decisions transparent. Through this, individuals reviewing the repository should understand the choices made and the rationale supporting them, and if they so wish, be able to reproduce and adapt the work. However, whilst the expectation is that the BBO strategy is replicable in the main, the same evaluation points aren’t expected to be selected owing to the correction of code bugs and other shortfalls, as the BBO technical approach and code base have matured during the course of the capstone project.
