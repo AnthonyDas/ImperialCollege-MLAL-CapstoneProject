@@ -1,11 +1,22 @@
 import numpy as np
 import pandas as pd
 
-def show_table(columns, column_names):
-    df = pd.DataFrame(np.concatenate(columns, axis=1), columns=column_names)
-    print(f'\n{df}')
 
 def format_point(pt):
+    """
+    Formats a point (list of coordinates) into a string representation for easy upload
+    into the BBO submission portal.
+
+    The point is converted to a string where each coordinate is formatted to 6 
+    d.p. and joined by hyphens.
+
+    Args:
+        pt (list): The coordinates to format. 
+
+    Returns:
+        str: A formatted string (e.g. '0.123456-0.987654').
+    """
+    
     if pt is None:
         return ""    
 

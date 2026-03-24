@@ -12,23 +12,46 @@ from random_sample_helper import DeterministicStdNormalSampler
 
 from transform_helper import NONE
 
-# To enforce a consistent API
-class BaseAcquisitionFnTransSpace:
+
+class BaseAcquisitionFn:
+    """Base acquisition function to enforce a consistent API."""
+    
     def __call__(self, mean_t, std_t):
+        """Evaluate the acquisition function.
+
+        Args:
+            mean_t (np.ndarray): Predicted means in the transformed space.
+            std_t (np.ndarray): Predicted standard deviations in the transformed space.
+
+        Returns:
+            np.ndarray: Acquisition values for each input point.
+        """
         raise NotImplementedError
 
 
-class UpperConfidenceBoundTransSpace(BaseAcquisitionFnTransSpace):
+class UpperConfidenceBoundTransSpace(BaseAcquisitionFn):
+    """Upper Confidence Bounds (UCB) acquisition function in y-transformed space."""
+    
     def __init__(self, beta):
+        """
+        Args:
+            beta (float): Exploration-exploitation trade-off parameter. Higher values encourage exploration.
+        """
         self.beta = beta
     
     def __call__(self, mean_t, std_t):
         return mean_t + (self.beta * std_t)
 
 
-# xi controls the exploration/exploitation trade-off. Higher values encourage exploration.
-class ExpectedImprovementTransSpace(BaseAcquisitionFnTransSpace):
+class ExpectedImprovementTransSpace(BaseAcquisitionFn):
+    """Expected Improvement (EI) acquisition function in y-transformed space."""
+    
     def __init__(self, y_t_best, xi):
+        """
+        Args:
+            y_t_best (float): The best observed value in y-transformed space.
+            xi (float): Exploration-exploitation trade-off parameter. Higher values encourage exploration.
+        """
         self.y_t_best = y_t_best
         self.xi = xi
     
@@ -43,14 +66,27 @@ class ExpectedImprovementTransSpace(BaseAcquisitionFnTransSpace):
         return ei
 
 
-class ExpectedImprovementOrigSpace(BaseAcquisitionFnTransSpace):
+class ExpectedImprovementOrigSpace(BaseAcquisitionFn):
+    """
+    Expected Improvement (EI) acquisition function in y-original space.
+    
+    Calculated by performing Monte Carlo sampling in the original y-space to
+    accommodate non-linear transformations.
+    """
+    
     def __init__(self, y_best, xi, y_transform, normal_sampler):
+        """
+        Args:
+            y_best (float): The best observed value in y-original space.
+            xi (float): Exploration-exploitation trade-off parameter.
+            y_transform: Transformer object with inverse_transform methods.
+            normal_sampler: Sampler providing (deterministic) standard normal samples.
+        """
         self.y_best = y_best
         self.xi = xi
         self.y_transform = y_transform
         self.normal_sampler = normal_sampler
 
-    
     def __call__(self, mean_t, std_t): 
         # Introduced batching to prevent out-of-memory issues after vectorising processing 
         return self._batched(mean_t, std_t, batch_size=1000)
@@ -98,19 +134,18 @@ class ExpectedImprovementOrigSpace(BaseAcquisitionFnTransSpace):
         z = self.normal_sampler.z
         
         M = len(z)
-        # z (M) -> z (1, M)
-        z = z[None, :]
+        z = z[None, :] # z shape: (M) -> z shape: (1, M)
 
         ei_values = np.empty(N)
 
         for start in range(0, N, batch_size):
             end = min(start + batch_size, N)
             
-            means = mean_t[start:end][:, None] # mean_t (N) -> mean_t (batch) -> mean (batch, 1)
-            stds = std_t[start:end][:, None]   # std_t (N)  -> std_t (batch) -> stds (batch, 1)
+            means = mean_t[start:end][:, None] # mean_t shape: (N) -> (batch) -> (batch, 1)
+            stds = std_t[start:end][:, None]   # std_t shape: (N)  -> (batch) -> (batch, 1)
 
             # Samples in transformed space
-            # (batch, 1) + (batch, 1)*(1, M) = (batch, M)
+            # shape: (batch, 1) + (batch, 1)*(1, M) = (batch, M)
             samples_t = means + stds * z
 
             # We check samples_original after inverse_transform anyway, and any transformer issues should be fixed directly within the transformer
@@ -133,11 +168,17 @@ class ExpectedImprovementOrigSpace(BaseAcquisitionFnTransSpace):
 
 
 def get_acq_fns(df, y_transform, ei_xis = [], ucb_betas = []):
+    """
+    Returns a dictionary of acquisition functions based on the EI xi and UCB beta values passed in.
 
+    y_transform: Transformer object used to transform y-original outputs.
+    
+    """
+    
     y = df['y'].values
     y_best = np.max(y) 
 
-    # Recalc y_t_best rather than using np.max(df["y_t"]) in case y_transform has been manually overridden
+    # Recalculate y_t_best rather than using np.max(df["y_t"]) in case y_transform has been manually overridden
     y_t = y_transform.transform(y.reshape(-1, 1)).ravel()
     y_t_best = np.max(y_t) 
     
@@ -161,13 +202,39 @@ def get_acq_fns(df, y_transform, ei_xis = [], ucb_betas = []):
     return acq_fns
 
 
-# This is a compromise between thoroughness and speed
-# We evaluate the EI on the x_grid, then select the best opt_trials locations to perform a local optimisation with.
 def determine_next_eval_points(df, model, x_grid, x_col_names, x_transform, y_transform, x_dim, acq_fns, bounds = None, opt_trials=100):
+    """
+    Determines the next evaluation point for each acquisition function within acq_fns dictionary.
 
-    x_grid_t = x_transform.transform(x_grid) # Use x_grid transformed, since model trained in x transformed space
-    
-    y_grid_mean, y_grid_std = model.predict(x_grid_t, return_std=True) # May or may not be y-transformed space
+    For each acquisition function, processing occurs in two stages as a compromise between thoroughness and speed:
+    Stage 1 - Evaluate the acquisition function over x_grid.
+    Stage 2 - Select the best outputs from Stage 1 and use their corresponding x points as the starting points for local optimisation.
+
+    Args:
+        df (pd.DataFrame): Current BBO function data.
+        model: Trained Gaussian Process surrogate model.
+        x_grid (np.ndarray): Grid of points for the initial search in Stage 1.
+        x_col_names (np.ndarray): x column names, e.g. [ 'x1', 'x2', ...].
+        x_transform (object): Transformer used to transform x-original inputs to the model's training space. (Could be identity transformer).
+        y_transform (object): Transformer used to transform y-original outputs. (Could be identity transformer).
+        x_dim (int): number of x input features/dimensions.
+        acq_fns (dict): dictionary of acquisition function names to corresponding object.
+        bounds: (list of tuple, optional): List of (min, max) tuples for each 
+            feature/dimension. Defaults to [0, 1) for all dimensions if None.
+        opt_trials (int): Number of top points from Stage 1's grid search to use as optimisation seeds in Stage 2.
+
+    Returns:
+        pd.DataFrame: A summary of the best points found for each acquisition function.
+        
+    Raises:
+        ValueError: If the model predicts non-finite values (NaN/Inf).
+    """
+
+    # Use x_grid transformed, since model trained in x-transformed space. (NB. x_transform could be identity transformer.)
+    x_grid_t = x_transform.transform(x_grid) 
+
+    # Output will always be in y-transformed space. (NB. y_transform could be identity transformer.)
+    y_grid_mean, y_grid_std = model.predict(x_grid_t, return_std=True) 
 
     # np.isfinite() catches NaN and ±inf
     if not np.isfinite(y_grid_mean).all():
@@ -194,22 +261,21 @@ def determine_next_eval_points(df, model, x_grid, x_col_names, x_transform, y_tr
         
             try:
                 if len(x_grid) >= opt_trials:
-                   
-                    # Evaluate acquisition fn over x_grid_t, then select the best opt_trials starting points for local optimisation using scipy.optimize.minimise()       
+                   # Need to select the best opt_trials outputs
+                    
                     acq_values = acq_fn(y_grid_mean, y_grid_std)
                     
                     #print(f'acq_values[:100]: {acq_values[:100]}')
             
-                    # We don't require top_indices to be sorted, any ordering is fine
+                    # We don't require top_indices to be sorted; any ordering is fine
                     # top_indices = np.argsort(acq_values)[-opt_trials:]           
                     top_indices = np.argpartition(acq_values, -opt_trials)[-opt_trials:]
                     
                     starting_points = x_grid[top_indices]
                 else:
+                    # Can't run opt_trials optimisations because x_grid has fewer points
                     print(f'opt_trials ({opt_trials}) is larger than len(x_grid). Reducing to len(x_grid) = {len(x_grid)}.')
                     starting_points = x_grid
-        
-                #print(f'starting_points[0:10]: {starting_points[0:10]}')
                 
                 x_best = None
                 distance = None
@@ -235,7 +301,8 @@ def determine_next_eval_points(df, model, x_grid, x_col_names, x_transform, y_tr
                         raise RuntimeError(f'acq_fn result did not have len = 1. acq: {acq}')
     
                     result = -acq[0] # Single entry 
-                    
+
+                    # Store the result into intermediate_results
                     dict_key = tuple(x) # dict key cannot be a mutable array
                     if dict_key not in intermediate_results:
                         intermediate_results[dict_key] = result

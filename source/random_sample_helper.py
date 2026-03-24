@@ -1,12 +1,29 @@
 import numpy as np
 
-'''
-By reusing the exact same standard Normal samples within Monte Carlo, we ensure that differing samples
-won't be a source of randomness between different Monte Carlo runs, e.g. when estimating EI at different
-grid points. Also, by setting the (same) seed, the samples will be deterministic, and results will be repeatable.
-'''
+
 class DeterministicStdNormalSampler:
+    """
+    Generates and stores deterministic standard Normal samples for Monte Carlo usage.
+
+    Employs antithetic samples to ensure the sample mean is exactly zero. By reusing the
+    same Normal samples across different Monte Carlo calculations, we ensure that differing
+    samples won't be a source of randomness impacting results.
+
+    Attributes:
+        z (np.ndarray): The array of standard Normal samples, N(0, 1).
+        n_samples (int): The total number of samples (will always be even).
+        seed (int): The random seed used for reproducibility.
+    """
+    
     def __init__(self, n_samples=1000, seed=42):
+        """
+        Initialises the sampler and generates the deterministic sample set.
+
+        Args:
+            n_samples (int): The target number of samples.
+            seed (int): The random number generator seed.
+        """
+        
         self.z = None # The actual standard Normal samples 
         self.n_samples = None # The number of samples
         

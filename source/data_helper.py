@@ -4,7 +4,20 @@ from numpy import array
 
 import pandas as pd
 
+
 def _get_initial_data(func_no):
+    """
+    Loads the initial baseline data for the specified objective function.
+
+    Args:
+        func_no (int): The BBO function ID (1 to 8 inclusive).
+
+    Returns:
+        tuple: A tuple containing:
+            - x_initial (np.ndarray): The initial input features for all samples.
+            - y_initial (np.ndarray): The initial output values.
+    """
+    
     assert type(func_no) == int and 1 <= func_no and func_no <= 8, 'arg func_no must be interger between 1 and 8 inclusive' 
 
     INITIAL_DATA_PATH = 'Initial Data/'
@@ -19,14 +32,27 @@ def _get_initial_data(func_no):
         y_initial = np.load(f)
 
     assert len(x_initial) == len(y_initial), 'input and output lengths must be identical' 
-
-    #print(f'y_initial element type: {type(y_initial[0])} ) # <class 'numpy.float64'>
     
     return x_initial, y_initial.reshape(-1, 1)
 
+    
 def _get_submission_data(func_no, sub_week):
+    """
+    Retrieves historical submission points and results for the specific function and week.
+
+    Args:
+        func_no (int): The BBO function ID (1 to 8 inclusive).
+        sub_week (int): The current week of the competition (1 to 13).
+
+    Returns:
+        tuple: A tuple containing:
+            - x_sub (np.ndarray): Query submissions in prior weeks.
+            - y_pred (np.ndarray): Model's predicted output for those inputs.
+            - y_sub (np.ndarray): Actual observed outputs.
+    """
+    
     assert type(func_no) == int and 1 <= func_no and func_no <= 8, 'arg func_no must be interger between 1 and 8 inclusive' 
-    assert type(sub_week) == int and 1 <= sub_week and sub_week <= 13, 'arg sub_week must be interger between 1 and 13 inclusive' 
+    assert type(sub_week) == int and 1 <= sub_week and sub_week <= 14, 'arg sub_week must be interger between 1 and 14 inclusive' # We allow 14 to get the results of week 13
 
     x_sub = [
         [array([0.796278, 0.744559]),
@@ -149,6 +175,10 @@ def _get_submission_data(func_no, sub_week):
     
     # What surrogate model predicted
     y_pred = [      
+        # In early code implementation (spanning weeks 1-3), certain BBO Functions had their training
+        # data manually modified or transformed. Some model predictions are therefore adjusted below
+        # to account for the inverse transforms. Later on, both forward and backward transforms
+        # were handled automatically.
         [
             0.9243645127883939 / 1e15, # Func1
             0.19150961693245247, # Func2
@@ -227,7 +257,7 @@ def _get_submission_data(func_no, sub_week):
         ], # Week7
 
         [
-            7.710875e-16, # Func1 JUST THE VALUE OF A NEARBY POINT AS X MANUALLY SET
+            7.710875e-16, # Func1 VALUE OF A NEARBY POINT AS X MANUALLY SET
             0.63750, # Func2
             -0.006586, # Func3
             0.144146, # Func4
@@ -429,7 +459,26 @@ def _get_submission_data(func_no, sub_week):
     
     return np.array(x_sub), np.array(y_pred).reshape(-1, 1), np.array(y_sub).reshape(-1, 1)
 
+    
 def get_data(func_no, sub_week, sort = True):
+    """
+    Consolidates initial and submission data into a single unified dataset.
+
+    Also prints metadata (e.g. x dimensions, and best outputs found).
+
+    Args:
+        func_no (int): The BBO function ID (1 to 8 inclusive).
+        sub_week (int): The current submission week.
+        sort (bool): If True, sorts the resulting DataFrame by output value 'y' in descending order (best points first).
+
+    Returns:
+        tuple: A tuple containing:
+            - initial_len (int): Number of initial, baseline observations.
+            - y_pred (np.ndarray): Predictions made during previous submissions.
+            - x_dim (int): The dimensionality of x input space.
+            - x_col_names (list): Generated labels for columns, e.g. ['x1', 'x2', ...].
+            - df (pd.DataFrame): The consolidated initial and submission data.
+    """
 
     # Initial data points
     x_initial, y_initial = _get_initial_data(func_no)
@@ -474,4 +523,5 @@ def get_data(func_no, sub_week, sort = True):
     display(Markdown(f'<br>**DataFrame:**'))
     print(df)
     
-    return initial_len, y_pred, x_dim, x_col_names, df 
+    return initial_len, y_pred, x_dim, x_col_names, df
+    
