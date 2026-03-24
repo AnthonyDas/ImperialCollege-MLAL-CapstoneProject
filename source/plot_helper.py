@@ -1,7 +1,17 @@
 import matplotlib.pyplot as plt
 
-# TODO
+
 def sequence_plot(df_col, initial_len, pred):
+    """
+    Plots the transition from initial observations to sequential submissions,
+    comparing the model's predicted outcomes against the actual results.
+
+    Args:
+        df_col (pd.Series): The target variable column containing both initial and submission results.
+        initial_len (int): The number of samples in the initial observations.
+        pred (list or np.ndarray): Model predictions for the submission points.
+    """
+    
     plt.figure(figsize=(10, 5))
 
     df_col_index_sorted = df_col.sort_index()
@@ -21,40 +31,3 @@ def sequence_plot(df_col, initial_len, pred):
     
     plt.show()
 
-
-# TODO
-def x_vs_y_scatter_plots(init_x, sub_x, init_y, pred_y, sub_y):
-    
-    for i in range(len(init_x[0])):
-        plt.figure(figsize=(10, 5))
-
-        init_x_col = [xi[i] for xi in init_x]
-    
-        # https://matplotlib.org/stable/users/explain/colors/colors.html#colors-def
-        plt.scatter(init_x_col, init_y, c='k', label='Initial Observations') # 'k' = black
-
-        sub_x_col = [xi[i] for xi in sub_x]
-
-        plt.scatter(sub_x_col, pred_y, c='g', label='Submissions Predicted') # 'g' = green
-        plt.scatter(sub_x_col, sub_y, c='b', label='Submissions Actual') # 'b' = blue
-
-        plt.xlabel(f"x{i}")
-        plt.ylabel("y")
-        plt.legend()
-        plt.title(f"x{i} vs y")
-        plt.show()
-
-
-# TODO
-def scatter_plot(x, y, x_label, y_label, scatter_label='', title=''):
-    plt.figure(figsize=(10, 5))
-
-    # https://matplotlib.org/stable/users/explain/colors/colors.html#colors-def
-    plt.scatter(x, y, c='k', label=scatter_label)
-    
-    plt.xlabel(x_label)
-    plt.ylabel(y_label)
-    plt.legend()
-    plt.title(title)
-
-    plt.show()
