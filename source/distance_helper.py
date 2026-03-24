@@ -14,7 +14,7 @@ def flatten(xss):
     return [x for xs in xss for x in xs]
 
 
-def distances_between_points(points):
+def distances_between_points(x):
     """
     Calculates pairwise Euclidean distances between all points in a set.
 
@@ -23,7 +23,7 @@ def distances_between_points(points):
     granularity.
 
     Args:
-        points (list of list or np.ndarray): A collection of points specified by their coordinates.
+        x (list of list or np.ndarray): A collection of points specified by their coordinates.
 
     Returns:
         tuple: A tuple containing:
