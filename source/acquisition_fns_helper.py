@@ -10,8 +10,6 @@ import distance_helper
 import print_helper
 from random_sample_helper import DeterministicStdNormalSampler
 
-from transform_helper import NONE
-
 
 class BaseAcquisitionFn:
     """Base acquisition function to enforce a consistent API."""
@@ -92,36 +90,6 @@ class ExpectedImprovementOrigSpace(BaseAcquisitionFn):
         return self._batched(mean_t, std_t, batch_size=1000)
 
     def _batched(self, mean_t, std_t, batch_size):        
-        ''' VECTORISED VERSION BELOW
-        ei_values = []
-        
-        for mean, std in zip(mean_t, std_t):
-            # If there isn't any variance, then you can't expect to exceed y_best
-            std = max(std, 1e-12)
-    
-            # Generate samples from N(mean, std) using standard N(0,1) samples 
-            samples_t = mean + (std * self.normal_sampler.z)
-        
-            # Clip to avoid extreme inverse-transform issues
-            samples_t = np.clip(samples_t, mean - 6 * std, mean + 6 * std)
-            
-            # Back to original y-space
-            samples_original = self.y_transform.inverse_transform(samples_t.reshape(-1, 1)).ravel()
-
-            if not np.all(np.isfinite(samples_original)):
-                indicies = np.where(~np.isfinite(samples_original)) #NB. ~ to perform element negation over Numpy arrays 
-                # samples_original = np.nan_to_num(samples_original, nan=0.0) # Update erroneous values to zero
-                raise RuntimeError(f'Inverse transform error. mean: {mean}, std: {std}.\nsamples_original: {samples_original[indices]}')
-                
-            improve = samples_original - self.y_best - self.xi
-            improve = np.maximum(0.0, improve)
-            ei = np.mean(improve)
-            
-            ei_values.append(ei)
-
-        return np.array(ei_values)
-        '''
-
         # Safety
         mean_t = np.asarray(mean_t).ravel()
         std_t = np.asarray(std_t).ravel()
