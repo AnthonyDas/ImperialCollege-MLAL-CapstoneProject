@@ -1,27 +1,27 @@
-# ImperialCollege-MLAL-CapstoneProject
-Black Box Optimisation Capstone Project
+# Imperial College London - Machine Learning and Artificial Intelligence - Black Box Optimisation Capstone Project
 
+Given how Machine Learning (ML) and Artificial Intelligence (AI) are fast becoming ubiquitous in all walks of life, completing a Professional Certificate in ML & AI, which this black-box optimisation capstone project is a part of, was my way to discover what exactly ML and AI are, as well as a constructive and fun way to learn Python.
 
-## OVERVIEW
+## PROJECT OVERVIEW
 
-This Black-Box Optimisation (BBO) project replicates real-world engineering and machine learning scenarios where an unknown, multi-dimensional function needs to be optimised. Here, the optimisation goal is maximisation over eight different BBO functions with very limited starting data. Additionally, each BBO function may only be evaluated once per week, up to a maximum of 13 evaluations. These constraints replicate real-world scenarios where function evaluations are costly and/or time-consuming. E.g. the tuning of model hyperparameters, or devising optimal parameters for industrial manufacturing processes.  
+This Black-Box Optimisation (BBO) project replicates real-world engineering and machine learning scenarios where an unknown, multi-dimensional "black-box" function needs to be optimised. Here, the optimisation goal is maximisation over eight independent BBO functions starting from an initial, limited sample dataset for each BBO function. Additionally, each BBO function may only be evaluated once per week, up to a maximum of 13 evaluations. These constraints replicate real-world scenarios where function evaluations may be monetarily costly and/or time-consuming, either of which leads to a limited evaluation budget. E.g. the tuning of a complex model's hyperparameters, or devising optimal parameters for industrial manufacturing processes.
 
-Although I'm a career software developer in finance, I haven't had any direct exposure to applying machine learning (ML) or artificial intelligence (AI) techniques. As AI is fast becoming ubiquitous in all walks of life, completing a Professional Certificate in Machine Learning and Artificial Intelligence, of which this BBO project is a part, was my way to learn more about what exactly ML and AI are. The course also acted as a useful way to learn Python and its relevant modules.
+## CHALLENGE OBJECTIVE
 
-## DOCUMENTS
+As mentioned, the objective is to maximise eight BBO functions. However, this isn't straightforward, due to:
 
-[Datasheet](https://github.com/AnthonyDas/ImperialCollege-MLAL-CapstoneProject/blob/main/Datasheet.md): Black-Box Optimisation Query Dataset Information
+* Sparse initial data vs input feature dimensionality.
+* The limited available additional function evaluations (13 in total per function).
+* The six-decimal-place granularity for each input feature dimension.
+* Each BBO function mimics real-world complexity with hidden features such as non-linearity, multiple local maxima and noise.
 
-[Model Card](https://github.com/AnthonyDas/ImperialCollege-MLAL-CapstoneProject/blob/main/Model_Card.md) Black-Box Optimisation Gaussian Process Model
-
-## INPUTS AND OUTPUTS
+## DATA
 
 * There are eight BBO functions in total, each varying between 2 and 8 input feature dimensions.
 * All inputs are numeric spanning the unit range [0, 1).
 * All functions have a single, continuous output variable which needs to be maximised. 
 * Each function may only be queried once per week.
  
-
 | Function   | Input | Output | Initial Samples | Optimisation |
 |------------|-------|--------|-----------------|--------------|
 | Function 1 | 2D    | 1D     | 10              | Maximisation |
@@ -35,15 +35,24 @@ Although I'm a career software developer in finance, I haven't had any direct ex
 
 For all functions, the input query format is x1 - x2 - x3 - ... - xn, where each xi starts with "0." and is specified to six decimal places. E.g. for Function 3, which has 3 feature dimensions, a valid input query would be: 0.444950-0.348788-0.558183. 
 
-## CHALLENGE OBJECTIVE
+[Datasheet](https://github.com/AnthonyDas/ImperialCollege-MLAL-CapstoneProject/blob/cc1bad7e3624054bcd00f6df2c36f27d7444791e/docs/Datasheet.md): Black-Box Optimisation Query Dataset Information
 
-As mentioned, the objective is to maximise each  BBO function. However, this isn't straightforward, bearing in mind:
 
-* The sparse starting data vs the feature dimensionality.
-* The limited available evaluations (13 in total per function).
-* The six-decimal-place granularity for each feature dimension.
-* Each BBO function mimics real-world complexity with hidden features such as non-linearity, multiple local maxima and noise.
-* This BBO project runs alongside the latter half of the ML and AI Professional Certificate course. This means that new models and techniques are still being taught as the BBO project progresses. As such, direction and strategies are likely to evolve as our knowledge and capabilities expand.
+
+## MODEL 
+
+[Model Card](https://github.com/AnthonyDas/ImperialCollege-MLAL-CapstoneProject/blob/cc1bad7e3624054bcd00f6df2c36f27d7444791e/docs/Model_Card.md) Black-Box Optimisation Gaussian Process Model
+
+## HYPERPARAMETER OPTIMIZATION
+
+## RESULTS
+
+## CONTACT DETAILS
+
+
+
+
+
 
 ## TECHNICAL APPROACH 
 
@@ -54,10 +63,3 @@ Additionally, I adopted more aggressive exploration for the lower-dimensional BB
 
 The main challenge I encountered was setting the RBF kernel's lengthscale. I used an isotropic lengthscale, meaning all feature dimensions use the same lengthscale. Notably, from online reading, a good lower and upper bound for the lengthscale is the min and max distance between available data points, respectively. This was implemented, and the starting lengthscale was set to the midpoint between the lower and upper bounds. Additionally, to prevent getting stuck in a local optimum during hyperparameter tuning, a relatively high n_restarts_optimizer value of 20, and later 100, was used. (n_restarts_optimizer is "The number of restarts of the optimizer for finding the kernel’s parameters which maximize the log-marginal likelihood.") In later rounds, I aim to investigate using an anisotropic lengthscale such that each feature dimension has a bespoke lengthscale.  
 
-## MODEL 
-
-## HYPERPARAMETER OPTIMIZATION
-
-## RESULTS
-
-## CONTACT DETAILS
