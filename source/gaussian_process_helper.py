@@ -45,10 +45,23 @@ LOOCV: Final = "LOOCV"
 X_TRANSFORM: Final = "x transform"
 Y_TRANSFORM: Final = "y transform"
 
+
 def format_sig_figs(value, sig_figs=6):
     """
-    Renders a number to a specific number of significant figures.
-    Returns a string to preserve formatting.
+    Formats a numeric value or collection of values to the specified precision 
+    to standardise their visual representation.
+    
+    Format specifier 'g' is used to balance scientific and fixed-point notation
+        dynamically.
+
+    Args:
+        value (Any): Input to format. Can be float, int, string, None, or an
+            iterable of these types.
+        sig_figs (int): The number of significant figures to show. 
+
+    Returns:
+        str or list: A formatted string representation of 'value', or a list of 
+            formatted strings if the input was an Iterable.
     """
     if value is None:
         return ""
@@ -70,6 +83,23 @@ def format_sig_figs(value, sig_figs=6):
     
 
 def get_kernels(x_dim):
+    """
+    Initialises various Gaussian Process kernels for model selection.
+
+    Constructs a variety of kernels including Matern, RBF, Rational Quadratic
+    and Periodic, both with and without an additive WhiteKernel component.
+    
+    Anisotropy (Automatic Relevance Determination) kernels are used by assigning
+    independent length scales to each input dimension, except for within RationalQuadratic
+    whose implementation currently only supports isotropic length scales. 
+
+    Args:
+        x_dim (int): The number of input dimensions.
+
+    Returns:
+        dict: Mapping from kernel names (str) to sklearn.gaussian_process.kernels objects.
+    """
+    
     # Specific bounds to prevent "hitting the wall"
     bounds = (LOWER_BOUND, UPPER_BOUND)
     
@@ -138,114 +168,18 @@ def get_kernels(x_dim):
     return kernels
 
 
-# Leave-One-Out Cross-Validation (LOOCV) - Replaces with more performant analytical/virtual LOOCV
-'''
-#An SMSE of 1.0 means your model is performing no better than simply guessing the mean of the training data.
-#An SMSE close to 0 indicates a high-performing model. If it's significantly above 1.0,
-#your GP is actively misleading you (likely due to severe overfitting).
-def LOOCV(model, x_t, y_t):
-    df_results_rows = []
-    
-    loo = LeaveOneOut()
-    for train_index, test_index in loo.split(x):
-        x_t_train, x_t_test = x_t[train_index], x_t[test_index]
-        y_t_train, y_t_test = y_t[train_index], y_t[test_index]
-        
-        model.fit(x_t_train, y_t_train)
-        y_t_pred = model.predict(x_t_test, return_std=False)
-
-        df_results_rows.append({
-            "y_t_true": y_t_test[0],
-            "loocv_y_t_pred": y_t_pred[0],           
-            "loocv_y_t_residual": (y_t_pred[0] - y_t_test[0]),           
-        })
-
-    return pd.DataFrame(df_results_rows)
-'''
-'''    
-def warp_inputs(x, params):
-        """Warps [0,1] inputs using Beta CDF per dimension."""
-        x_warped = np.zeros_like(x)
-        x_warped[:, 0] = beta.cdf(np.clip(x[:, 0], 1e-5, 1-1e-5), params[0], params[1])
-        x_warped[:, 1] = beta.cdf(np.clip(x[:, 1], 1e-5, 1-1e-5), params[2], params[3])
-        return x_warped
-    
-def LML_optimised_warped_inputs(model, x, z):
-    
-    def negative_LML(warping_params, x, z):
-        x_warped = warp_inputs(x, warping_params)
-        model.fit(x_warped, z)
-        return -model.log_marginal_likelihood()
-
-    model.fit(x, z)
-    
-    # Multi-start optimization for warping parameters
-    best_neg_lml = -model.log_marginal_likelihood()
-    best_params = [1.0, 1.0, 1.0, 1.0]
-
-    seeds = [1.0, 1.0, 1.0, 1.0] # Identity
-    seeds = np.vstack([seeds, np.random.uniform(0.1, 5.0, size=(4, 4))]) # Plus 4 random starts
-
-    for index, seed in enumerate(seeds): 
-        res = minimize(negative_LML, x0 = seed, args=(x, z), bounds=[(0.1, 10.0)] * 4, method='L-BFGS-B')
-        
-        if res.success:
-            if res.fun < best_neg_lml:
-                best_neg_lml = res.fun
-                best_params = res.x
-
-            print(f"{index + 1}/{len(seeds)} {seed} result_params: {res.x}, lml: {-res.fun}, best_params: {best_params}, best_lml: {-best_neg_lml}")
-
-    return warp_inputs(x, best_params), best_params
-'''
-'''
-DOESN'T WORK FOR COMPLEX KERNELS BECAUSE THERE COULD BE MULTIPLE MATERS, HENCE DICT KEY NAME CLASH
-def extract_kernel_params(model):
-    """
-    Extracts optimised hyperparameters from a (potentially complex) additive/multiplicative kernel.
-    Also renames nested kernel ids by mapping keys (e.g k1, k2) to their respective Kernel Class name.
-    """
-    params = model.kernel_.get_params()
-
-    extracted_params = {}
-    
-    # Build a dict of kernel IDs (k1, k2,...) to kernel
-    # e.g.'k1__k2' -> e.g. RationalQuadratic(alpha=1e+05, length_scale=0.375)
-    id_to_kernel = {}
-    for key, value in params.items():
-        # Check if value is a kernel object
-        if isinstance(value, Kernel):
-            id_to_kernel[key] = value
-
-    # Extract parameter values and rename key
-    for key, value in params.items():
-
-        if isinstance(value, Kernel):
-            continue
-
-        # Ignore parameter "bounds"
-        if key.endswith("_bounds"):
-            continue
-
-       # Identify the id (everything before the last parameter name)
-        # e.g., 'k1__k2__length_scale' -> id = 'k1__k2', param = 'length_scale'
-        key_parts = key.rsplit("__", maxsplit=1) # Rightmost Split
-        kernel_id = key_parts[0]
-        param_name = key_parts[1]
-
-        # Find class name using id_to_kernel dict to retrieve kernel if available, otherwise keep key as is
-        new_key = key
-        kernel = id_to_kernel.get(kernel_id, kernel_id)
-        if isinstance(kernel, Kernel):
-            new_key = f"{kernel.__class__.__name__}__{param_name}"
-        
-        extracted_params[new_key] = format_sig_figs(value, sig_figs=4)
-            
-    return extracted_params, id_to_kernel
-'''
-
 def extract_optimised_kernel_params_str(model):
+    """
+    Extracts the model's optimised kernel parameters.
 
+    Example output: "0.977**2 * RBF(len_scale=[0.0116, 0.00739]) + WhiteK(noise=1e-07)"
+
+    Args:
+        model (GaussianProcessRegressor): A fitted GPR model.
+
+    Returns:
+        str: Optimised kernel parameters.
+    """
     params = model.kernel_.get_params()
     params_strs = []
 
@@ -267,12 +201,22 @@ def extract_optimised_kernel_params_str(model):
         
     return " + ".join(params_strs) # main kernels appear to be separated by addition
 
-    
+
 def get_model_noise(model):
     """
-    Extracts the noise level from a fitted GaussianProcessRegressor.
-    Includes both the kernel's WhiteKernel and the GPR's alpha parameter.
+    Calculates the total observation noise captured by a GPR model.
+
+    In Gaussian Processes, noise can be represented either by the `alpha` 
+    parameter in the Regressor or an explicit `WhiteKernel` in the kernel 
+    composition. This function sums both to find the total noise.
+
+    Args:
+        model (GaussianProcessRegressor): A fitted GPR model.
+
+    Returns:
+        float: The combined noise level (variance).
     """
+
     # Start with the GPR's alpha
     total_noise = model.alpha
     
@@ -286,6 +230,26 @@ def get_model_noise(model):
 
     
 def evaluate_model(model_name, model, df, x_col_names, x_transform, y_transform, df_tuning_results_rows, model_dict, n_samples=10000):
+    """
+    Performs analytical Leave-One-Out Cross-Validation (LOOCV) for GPR 'model'.
+
+    This function fits the model in transformed space, then uses the Cholesky 
+    decomposition to analytically derive Leave-One-Out predictions. It then 
+    maps these predictions back to the original space using Monte Carlo (MC)
+    inversion to calculate accuracy metrics.
+
+    Args:
+        model_name (str): Label for the specific kernel/x-transform/y-transform combination.
+        model (GaussianProcessRegressor): The GP model template.
+        df (pd.DataFrame): The training dataset.
+        x_col_names (list): List of feature column names, e.g. ['x1', 'x2', ...].
+        x_transform (BaseTransformer): Transformer for input features.
+        y_transform (BaseTransformer): Transformer for target values.
+        df_tuning_results_rows (list): List to append result metrics to.
+        model_dict (dict): Dictionary to store the fitted model and its metadata.
+        n_samples (int): MC samples for inverse distribution mapping.
+    """
+    
     # --- Data Prep ---  
     x = df[x_col_names].values
     y = df['y'].values 
@@ -313,9 +277,10 @@ def evaluate_model(model_name, model, df, x_col_names, x_transform, y_transform,
     # GPR stores this as gpr.alpha_
     alpha = model.alpha_
 
-    # 4. LOOCV variance in y-transformed spac
+    # 4. LOOCV variance in y-transformed space
     mean_t = y_t - (alpha / diag_inv)
 
+    # TODO: Unclear whether noise should be subtracted
     #noise = get_model_noise(model)
     #var_t = (1.0 / diag_inv) - noise
 
@@ -345,11 +310,15 @@ def evaluate_model(model_name, model, df, x_col_names, x_transform, y_transform,
     
     mse_top = mse_i[sorted_indices][-n_top:]
     y_mse_top = np.mean(mse_top)
-    
+
+    # Calculate y_smse_top with the var(y_top) as denominator
     #y_top = y[sorted_indices][-n_top:]
     #y_smse_top = y_mse_top / np.var(y_top)
 
-    y_smse_top = y_mse_top / np.var(y) # NB. Still using the var of all y points
+    # Calculate y_smse_top with the var(y) as denominator
+    # Denominator var(y) is preferable to var(y_top) because then y_smse and y_smse_top
+    # will have the same denominator and be directly comparable
+    y_smse_top = y_mse_top / np.var(y)
 
     # Log marginal likelihood
     lml = model.log_marginal_likelihood()
@@ -369,7 +338,8 @@ def evaluate_model(model_name, model, df, x_col_names, x_transform, y_transform,
         print(f"{param_key}: {param_value}")
 
     params_str = extract_optimised_kernel_params_str(model)
-    
+
+    # TODO: Could potentially drop Z_MSE, Y_MSE and Y_MSE_TOP as we have SMSE variants
     df_tuning_results_rows.append({
         MODEL: model_name,
         Z_SMSE: y_t_smse,           
@@ -389,7 +359,28 @@ def evaluate_model(model_name, model, df, x_col_names, x_transform, y_transform,
         Y_TRANSFORM: y_transform, # After fit_transform()
     }
 
-def tune_gaussian_process_surrogate(df, x_col_names, kernels, y_transforms, x_transforms):   
+def tune_gaussian_process_surrogate(df, x_col_names, kernels, y_transforms, x_transforms):
+    """
+    Executes grid search over 'kernels', 'y_transforms' and 'x_transforms' to find the
+    best combination for a GPR surrogate model.
+
+    This is the main driver for model tuning. It suppresses common convergence 
+    warnings that occur during hyperparameter optimisation (L-BFGS-B) and 
+    systematically evaluates every combination of provided kernels and transforms.
+
+    Args:
+        df (pd.DataFrame): The training dataset.
+        x_col_names (list): List of feature column names, e.g. ['x1', 'x2', ...].
+        kernels (dict): Dictionary of kernel templates from `get_kernels`.
+        y_transforms (dict): Dictionary of target transformers.
+        x_transforms (dict): Dictionary of feature transformers.
+
+    Returns:
+        tuple: (df_tuning_results, model_dict)
+            - df_tuning_results: DataFrame containing SMSE, MSE, and LML for all combinations.
+            - model_dict: Dictionary containing the fitted model objects and transformers.
+    """
+    
     df_tuning_results_rows = []
     model_dict = {}
     
@@ -442,24 +433,8 @@ def tune_gaussian_process_surrogate(df, x_col_names, kernels, y_transforms, x_tr
                         df_tuning_results_rows = df_tuning_results_rows,
                         model_dict = model_dict,
                     )
-
-                    '''
-                    if include_warping:
-                        model_name = f'{kernel_name} warp'
-                        x_warped, warp_params = LML_optimised_warped_inputs(model, x = df_x.values, z = df_z.values)
-                        loocv_df = evaluate_model(
-                            model_name = model_name,
-                            model = model,
-                            x_col_names = x_col_names,
-                            x = x_warped,
-                            y = df_y.values,
-                            z = df_z.values,
-                            inverse_transform = inverse_transform,
-                            df_results_rows = df_results_rows
-                        )
-                        model_dict[model_name] = { MODEL : model, LOOCV: loocv_df, "Warp params" : warp_params }
-                    '''
                     
     df_tuning_results = pd.DataFrame(df_tuning_results_rows)
     
     return df_tuning_results, model_dict
+
