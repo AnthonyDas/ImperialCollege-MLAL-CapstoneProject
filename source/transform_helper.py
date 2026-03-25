@@ -5,12 +5,22 @@ from typing import Final
 
 from random_sample_helper import DeterministicStdNormalSampler
 
-NONE: Final = "none"
 
-# To enforce a consistent API
 class BaseTransformer:
+    """
+    Abstract base class for target and feature transformers.
+
+    Enforces a consistent API for fitting, transforming, and inverse-transforming 
+    data. Employs Monte Carlo to inverse transform (mean and variance) from
+    transformed space back to the original space.
+
+    Attributes:
+        normal_sampler (DeterministicStdNormalSampler): Provided a fixed set of standard 
+            normal samples used for repeatable Monte Carlo calculations.
+    """
+    
     def __init__(self, n_samples=10000):
-        # Ensures we have the same Normal samples for all Monte Carlo tranform inversions
+        # Ensures we have the same Normal samples for all Monte Carlo transform inversions
         self.normal_sampler = DeterministicStdNormalSampler(n_samples=n_samples)
     
     def fit(self, y):
@@ -32,7 +42,7 @@ class BaseTransformer:
         return self._inverse_transform(z_arr.reshape(-1, 1)).ravel()
     
     def inverse_transform_dist(self, mean_t, std_t):
-        # --- Monte Carlo to computer inverse y-transform ---
+        # Employ Monte Carlo to compute inverse y-transform
         
         n_points = len(mean_t)
         
@@ -40,11 +50,6 @@ class BaseTransformer:
         z_scores = self.normal_sampler.z # Shape: (n_samples,)
         
         # Generate all Monte Carlo samples in transformed space upfront
-        '''samples_t = np.random.normal(
-        mean_t[i],
-        std_t[i],
-        size=n_samples
-        )''' 
         samples_t = mean_t[:, np.newaxis] + std_t[:, np.newaxis] * z_scores # Shape: (n_points, n_samples)
 
         # Inverse transform
@@ -53,32 +58,17 @@ class BaseTransformer:
         #samples_original = samples_original_flat.reshape(n_points, -1)
         samples_original = self._inverse_transform(samples_t.reshape(-1, 1)).reshape(n_points, -1)
 
-        # Handle NaNs in y-original space
-        '''
-        # Still getting samples_original nan values. Opting to just remove them (below).
-        # Given only a handful compared to n_samples=1000, so impact should be small and
-        # we're only calculating SMSE to compare different models/kernel.
-        #samples_t = np.clip(samples_t, mean_t[i] - 6*std_t[i], mean_t[i] + 6*std_t[i])
-    
-        if (np.isnan(samples_t).sum()):    
-            print(f'Detected samples_t error. i: {i}, mean_t: {mean_t[i]}, std_t: {std_t[i]}, samples_t: {samples_t}')
-    
-        if (np.isnan(samples_original).sum()): 
-            indicies = np.where(np.isnan(samples_original))[0]
-            samples_original = np.delete(samples_original, indicies)
-            print(f'Detected samples_original error. i: {i} mean_t: {mean_t[i]}, std_t: {std_t[i]}. Removed {len(indicies)} values')
-        '''
-  
         # Calculate the mean and std in y-original space
-        # Use nanmean/nanvar to handle extreme tail errors
+        # Use nanmean/nanvar to handle extreme tail errors - TODO: log/error when Nans detected
         mean_y = np.nanmean(samples_original, axis=1)
         std_y = np.nanstd(samples_original, axis=1)
         
         return mean_y, std_y
 
         
-# No transformation is applied
 class IdentityTransformer(BaseTransformer):
+    """Pass-through transformer that applies no data modifications."""
+    
     def fit(self, y):
         return self
     
@@ -94,6 +84,13 @@ class IdentityTransformer(BaseTransformer):
 
 
 class SklearnWrapper(BaseTransformer):
+    """
+    Wraps standard Scikit-Learn transformers to adhere to the BaseTransformer API.
+
+    Args:
+        transformer: Scikit-Learn transformer instance (e.g. StandardScaler).
+    """
+    
     def __init__(self, transformer):
         super().__init__()
         self.transformer = transformer
@@ -110,8 +107,14 @@ class SklearnWrapper(BaseTransformer):
         return self.transformer.inverse_transform(z)
 
         
-# LogShift using range-based shift
 class LogShiftTransformer(BaseTransformer):
+    """
+    Applies a Log(y + shift) transform where the shift ensures all values > 0.
+
+    Range-based shift is used and calculated as `-min(y) + alpha * range(y)`.
+    More robust than a simple log for datasets containing zero or negative values.
+    """
+    
     def __init__(self, alpha = 0.1):
         super().__init__()
         self.alpha = alpha
@@ -147,7 +150,15 @@ class LogShiftTransformer(BaseTransformer):
 
         return np.exp(z_safe) - self.shift_
 
+        
 class LogShiftScaledTransformer(BaseTransformer):
+    """
+    This transformer applies LogShift followed by StandardScaler.
+    
+    This ensures the target is log-normal distributed and then centered/scaled 
+    to have zero mean and unit variance.
+    """
+    
     def __init__(self):
         super().__init__()
         self.ls_ = LogShiftTransformer()
@@ -177,6 +188,12 @@ class LogShiftScaledTransformer(BaseTransformer):
 
 
 class SymmetricLogTransformer(BaseTransformer):
+    """
+    Applies a symmetric log transform: sign(y) * log(1 + |y|/scale).
+
+    Useful for data spanning orders of magnitude with both positive and negative values.
+    """
+    
     def __init__(self, alpha=0.5, beta=1.0, upper_q=0.95, lower_q=0.75, epsilon=1e-12):
         super().__init__()
         self.alpha = alpha
@@ -214,7 +231,15 @@ class SymmetricLogTransformer(BaseTransformer):
     
         return np.sign(z) * self.scale_ * np.expm1(abs_z) # expm1(x) = exp(x - 1)
 
+        
 class SymmetricLogScaledTransformer(BaseTransformer):
+    """
+    This transformer applies SymmetricLog, followed by StandardScaler.
+    
+    Designed for datasets spanning multiple orders of magnitude that contain 
+    both positive and negative values.
+    """
+    
     def __init__(self):
         super().__init__()
         self.st_ = SymmetricLogTransformer()
@@ -245,27 +270,35 @@ class SymmetricLogScaledTransformer(BaseTransformer):
 
 # Extend PowerTransformer to make inverse_transform safe, i.e. prevent overflow
 class SafePowerTransformer(PowerTransformer):
+    """
+    Extension of sklearn PowerTransformer applying clipping to prevent overflow.
+
+    The intention is to prevent `inf` or `nan` results during inverse transformation
+    by clipping input values to a safe numerical range for float64.
+    """
 
     def _inverse_transform(self, z):
         z = np.asarray(z)
-
-        z = np.clip(z, -1e6, 1e6)
+        z_clipped = np.clip(z, -1e6, 1e6)
         
-        y = super().inverse_transform(z)
-        '''
-        # Replace inf with large finite values
-        finite_mask = np.isfinite(y)
-        if not finite_mask.all():
-            max_float = np.finfo(np.float64).max
-            y = np.where(finite_mask, y, np.sign(y) * max_float)
-            print("SafePowerTransformer inverse_transform")
-        '''
+        y = super().inverse_transform(z_clipped)
+
         return y
         
 
 def get_y_transformers(inc_symlog = False):
+    """
+    Generates a dictionary of available y transformers.
+
+    Args:
+        inc_symlog (bool): Whether to include Symmetric Log variants.
+
+    Returns:
+        dict: Mapping of transformer names (str) to corresponding transformers.
+    """
+    
     transforms = {
-        NONE: IdentityTransformer(),
+        "none": IdentityTransformer(),
         "scaled": SklearnWrapper(StandardScaler()),
         "power": SklearnWrapper(SafePowerTransformer(method="yeo-johnson", standardize=False)),
         "pow-scaled": SklearnWrapper(SafePowerTransformer(method="yeo-johnson", standardize=True)),
@@ -279,9 +312,18 @@ def get_y_transformers(inc_symlog = False):
     
     return transforms
 
+    
 def get_x_transformers():
+    """
+    Generates a dictionary of available x transformers.
+
+    Returns:
+        dict: Mapping of transformer names (str) to corresponding transformers.
+    """
+    
     return {
-        NONE: IdentityTransformer(),
+        "none": IdentityTransformer(),
         "scaled": SklearnWrapper(StandardScaler()),
     }
+
     
