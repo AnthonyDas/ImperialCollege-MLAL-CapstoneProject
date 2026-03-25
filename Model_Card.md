@@ -57,7 +57,11 @@ _'Initial Best'_ provides the highest output value for each BBO function within 
 
 ## Trade-offs
 
-TODO
+By default, the model tests all combinations of configured i.) kernels, ii.) x input transforms, and iii.) y output transforms to provide maximal GP flexibility at the expense of added computational time. In particular, it does not exclude combinations known to have performed poorly in earlier submission rounds. However, as analytical LOOCV is utilised, the generation of LOOCV SMSE scores is not computationally excessive. (Should users wish to manually exclude certain kernels and/or transforms, there are appropriate Jupyter notebook cells to do so.)
+
+Analytically LOOCV isn’t a pure win, however. Given that x and y transformations are employed, the transformers themselves are fitted using all the data. In particular, this includes the point that is “left out” for cross-validation, and hence, this is "data leakage". Overall, the performance boost given by analytical LOOCV only needing to fit the data once, rather than for every data sample, is well worth this trade-off.
+
+For awareness, all Jupyter notebooks are expected to finish within 5-10 mins.
 
 ## Ethical Considerations
 
