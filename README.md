@@ -12,7 +12,7 @@ Although I'm a career software developer in finance, I haven't had any direct ex
 
 [Datasheet](https://github.com/AnthonyDas/ImperialCollege-MLAL-CapstoneProject/blob/main/Datasheet.md): Black-Box Optimisation Query Dataset Information
 
-[Model Card](https://github.com/AnthonyDas/ImperialCollege-MLAL-CapstoneProject/blob/main/Model%20Card.md) Black-Box Optimisation Gaussian Process Model
+[Model Card](https://github.com/AnthonyDas/ImperialCollege-MLAL-CapstoneProject/blob/main/Model_Card.md) Black-Box Optimisation Gaussian Process Model
 
 ## INPUTS AND OUTPUTS
 
