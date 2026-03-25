@@ -1,20 +1,20 @@
-# Datasheet: Black-Box Optimisation Query Dataset
+# Datasheet: Black-Box Optimisation (BBO) Dataset
 
 ## Motivation
 
-This dataset is part of a Black‑Box Optimisation (BBO) capstone project run by Imperial College London towards the award of a Professional Certificate in Machine Learning and Artificial Intelligence.
+This dataset is part of a Black‑Box Optimisation (BBO) capstone project run by Imperial College London towards the award of a Professional Certificate in Machine Learning and Artificial Intelligence [August 2025 - March 2026].
 
-The project aims to maximise the output of 8 independent, unknown “black-box” functions by examining past evaluations and selectively deciding where to evaluate next. Initial data samples of varying sizes for each function were provided and form part of the dataset. A total of 13 additional evaluations per function are also available. These “query submissions” are to be chosen by participants and also form part of the dataset.
+The project aims to maximise the output of 8 independent, unknown “black-box” functions by examining past evaluations and selectively deciding where to evaluate each function next. Initial data samples, containing both inputs and outputs, of varying lengths for each function, were provided and form part of the dataset. A total of 13 “query submissions”  per function is also available and must be chosen by participants. Query submissions and corresponding outputs also form part of the dataset.
 
-The task of this dataset is to record historical evaluations for each of the 8 BBO functions, and to be used for the purposes of training any models necessary to maximise the same functions.
+The task of this dataset is to record historical evaluations for each of the 8 BBO functions, and to be used for training any models necessary to maximise each function.
 
 ## Composition
 
 ### Initial data samples:
 
-* These are provided as numpy files. Inputs and outputs are separated into 2 different files per BBO Function (e.g. initial_inputs1.npy and initial_outputs1.npy).
-* Once loaded into a numpy array (via numpy.load(<file>)), each row represents a function evaluation, either the input feature values, or the corresponding output value. 
-* All values for a given input feature are numeric spanning the unit range [0, 1).
+* These are provided as _.npy_ (numpy) files. Inputs and outputs are separated into 2 different files per BBO Function (e.g. _initial_inputs1.npy_ and _initial_outputs1.npy_).
+* Once loaded into a numpy array (via _numpy.load(<file>)_), each row represents a function evaluation, either the input feature values or the corresponding output value. 
+* All input feature values are numeric spanning the unit range [0, 1).
 * All functions have a single, continuous output variable.
 
 | Function   | Input | Output | Initial Samples | Optimisation |
@@ -30,25 +30,27 @@ The task of this dataset is to record historical evaluations for each of the 8 B
 
 ### Query submissions:
 
-* These are provided as txt files. Inputs and outputs are separated into 2 different files per submission round (e.g. inputs_week1.txt and outputs_week1.txt).
+* These are provided as _.txt_ (text) files. Inputs and outputs are separated into 2 different files per submission round (e.g. _inputs_week1.txt_ and _outputs_week1.txt_).
 * File contents should be read as Python code. Each line corresponds to an array where each element represents the inputs/output for BBO functions 1 through 8, inclusive.
-* Files also include data for any earlier submission rounds. Hence, the latest input and output files are really all that’s needed.
-For all functions, the input query format is x1 - x2 - x3 - ... - xn, where each xi starts with "0." and is specified to six decimal places. E.g. for Function 3, which has 3 feature dimensions, a valid input query would be: 0.444950-0.348788-0.558183.
+* Files include data for all earlier submission rounds. Hence, the latest input and output files (_inputs_week13.txt_ and _outputs_week13.txt_) contain all the submissions and outputs.
+* For all functions, the input query format is x<sub>1</sub> - x<sub>2</sub> - x<sub>3</sub> - ... - x<sub>n</sub>, where each x<sub>i</sub> starts with "0." and is specified to six decimal places. E.g. for Function 3, which has 3 feature dimensions, a valid input query would be: 0.444950-0.348788-0.558183.
 * All functions have a single, continuous output variable.
 
 ## Collection Process
 
-The initial samples were provided as part of the capstone project briefing. The means by which they were originally selected is unknown.
+The initial samples were provided as part of the capstone BBO project briefing. The means by which they were originally selected is unknown.
 
-Query submissions reflect the selected next evaluation point chosen by a Gaussian Process surrogate model and acquisition function combination. However, on occasion, if the surrogate model was deemed to poorly fit the available evaluation data, then evaluation points may have been manually chosen after careful reflection. New query submissions are typically generated at a weekly cadence. This cadence aims to mirror real-world BBO scenarios where underlying objective function evaluations can carry a high monetary cost and time delay. Importantly, successive query rounds will have access to earlier query rounds’ evaluations and outputs.
+Query submissions reflect the selected next evaluation point chosen by a Gaussian Process Regressor surrogate model and acquisition function combination. However, on occasion, if the surrogate model couldn't adequately fit the available evaluation data, then next evaluation points may have been manually chosen after careful reflection. New query submissions were typically generated at weekly intervals. This cadence aimed to mirror real-world BBO scenarios where underlying objective function evaluations can carry a high monetary cost and time delay. Importantly, successive query rounds all had access to earlier query rounds’ evaluations and outputs.
 
 Whilst query submission inputs are generated by capstone project participants, corresponding outputs are generated by a process run by Imperial College London to simulate a real-world BBO challenge. In this manner, the analytical form of the underlying objective function for each of the 8 BBO functions remains hidden.   
 
-## Preprocessing and Uses
+## Preprocessing
 
 * All input features reside within [0,1] without any transformations applied (i.e. x-original space).
 * All outputs are the raw numeric values without any transformations applied (i.e. y-original space).
 * All known data is provided. There have been no modifications, redactions or omissions.
+
+## Uses
 
 ### Intended uses 
 
@@ -56,9 +58,11 @@ To conduct a BBO challenge through the training and evaluation of different mach
 
 ### Inappropriate uses 
 
-There are no ethical considerations. The dataset is understood to be synthetic in nature, created expressly for the provision of an educational capstone project. 
+The dataset is understood to be synthetic in nature, created expressly for the provision of an educational capstone project. 
 
-## Distribution and Maintenance
+There are no ethical considerations regarding the unfair treatment of individuals or population groups, or other such risks or harms. 
+
+## Distribution
 
 * The dataset is available within the project repository:
 
@@ -67,4 +71,7 @@ _/data/initial_data/_
 _/data/submissions/_
 
 * Any requests to use the data in contexts outside of academic settings should be directed to Imperial College London.
-* The dataset will be updated by the project owner on a weekly basis until the completion of the capstone project. There will be a maximum of 13 query submissions.
+
+## Maintenance
+
+* The dataset will be updated weekly by the project owner until the completion of the capstone project [March 2026]. There will be a maximum of 13 query submissions.
