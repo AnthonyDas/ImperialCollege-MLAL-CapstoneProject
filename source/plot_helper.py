@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 
 
-def sequence_plot(df_col, initial_len, pred):
+def sequence_plot(df_col, initial_len, pred = None):
     """
     Plots the transition from initial observations to sequential submissions,
     comparing the model's predicted outcomes against the actual results.
@@ -22,7 +22,9 @@ def sequence_plot(df_col, initial_len, pred):
     # https://matplotlib.org/stable/users/explain/colors/colors.html#colors-def
     plt.scatter(initial_unit_spacing, df_col_index_sorted[:initial_len], c='k', label='Initial Observations') # 'k' = black
     plt.scatter(submission_unit_spacing, df_col_index_sorted[initial_len:], c='b', label='Submissions Actual') # 'b' = blue
-    plt.scatter(submission_unit_spacing, pred, c='g', label='Submissions Predicted') # 'g' = green
+
+    if not pred is None:     
+        plt.scatter(submission_unit_spacing, pred, c='g', label='Submissions Predicted') # 'g' = green
 
     plt.xlabel("n-th point")
     plt.ylabel(df_col.name)
