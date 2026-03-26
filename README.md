@@ -58,28 +58,28 @@ The model tunes i.) GPR kernel, ii.) x input transform, and iii.) y output trans
 
 ### GPR kernels:
 
-| Basic Kernels                   | Description                                                 |
-|---------------------------------|-------------------------------------------------------------|
-| Matern 2.5                      | ConstantKernel() * Matern(nu=2.5)                           |
-| Matern 1.5                      | ConstantKernel() * Matern(nu=1.5)                           |
-| Matern 0.5                      | ConstantKernel() * Matern(nu=0.5)                           |
-| RBF                             | ConstantKernel() * RBF()                                    |
-| Rational Quad                   | ConstantKernel() * RationalQuadratic()                      |
-| Periodic                        | ConstantKernel() * ExpSineSquared()                         |
-| Locally Periodic                | ConstantKernel() * RBF() * ExpSineSquared()                 |
-| Linear + RBF                    | DotProduct() + ConstantKernel() * RBF()                     |
-| Matern 2.5 +  WhiteKernel       | ConstantKernel() * Matern(nu=2.5) + WhiteKernel()           |
-| Matern 1.5 +  WhiteKernel       | ConstantKernel() * Matern(nu=1.5) + WhiteKernel()           |
-| Matern 0.5 +  WhiteKernel       | ConstantKernel() * Matern(nu=0.5) + WhiteKernel()           |
-| RBF +    WhiteKernel            | ConstantKernel() * RBF() + WhiteKernel()                    |
-| Rational Quad +  WhiteKernel    | ConstantKernel() * RationalQuadratic() + WhiteKernel()      |
-| Periodic +  WhiteKernel         | ConstantKernel() * ExpSineSquared() + WhiteKernel()         |
-| Locally Periodic +  WhiteKernel | ConstantKernel() * RBF() * ExpSineSquared() + WhiteKernel() |
-| Linear + RBF +  WhiteKernel     | DotProduct() + ConstantKernel() * RBF() + WhiteKernel()     |
+| Basic   Kernel Names              | Kernel   Composition                                          |
+|-----------------------------------|---------------------------------------------------------------|
+| Matern 2.5                        | ConstantKernel() *   Matern(nu=2.5)                           |
+| Matern 1.5                        | ConstantKernel() *   Matern(nu=1.5)                           |
+| Matern 0.5                        | ConstantKernel() *   Matern(nu=0.5)                           |
+| RBF                               | ConstantKernel() *   RBF()                                    |
+| Rational Quad                     | ConstantKernel() *   RationalQuadratic()                      |
+| Periodic                          | ConstantKernel() *   ExpSineSquared()                         |
+| Locally   Periodic                | ConstantKernel() *   RBF() * ExpSineSquared()                 |
+| Linear + RBF                      | DotProduct() +   ConstantKernel() * RBF()                     |
+| Matern 2.5   +  WhiteKernel       | ConstantKernel() *   Matern(nu=2.5) + WhiteKernel()           |
+| Matern 1.5   +  WhiteKernel       | ConstantKernel() *   Matern(nu=1.5) + WhiteKernel()           |
+| Matern 0.5   +  WhiteKernel       | ConstantKernel() *   Matern(nu=0.5) + WhiteKernel()           |
+| RBF +  WhiteKernel                | ConstantKernel() *   RBF() + WhiteKernel()                    |
+| Rational Quad   +  WhiteKernel    | ConstantKernel() *   RationalQuadratic() + WhiteKernel()      |
+| Periodic   +  WhiteKernel         | ConstantKernel() *   ExpSineSquared() + WhiteKernel()         |
+| Locally   Periodic +  WhiteKernel | ConstantKernel() *   RBF() * ExpSineSquared() + WhiteKernel() |
+| Linear + RBF   +  WhiteKernel     | DotProduct() +   ConstantKernel() * RBF() + WhiteKernel()     |
 
 The above are basic kernels with and without an additive WhiteKernel.
 
-| Complex   Kernels                                | Description                                                                                              |
+| Complex   Kernel Names                           | Kernel   Composition                                                                                     |
 |--------------------------------------------------|----------------------------------------------------------------------------------------------------------|
 | i). Local Sens + Mat 2.5 +  WhiteKernel          |  ConstantKernel() * Matern(nu=1.5) +   ConstantKernel() * Matern(nu=2.5) + WhiteKernel()                 |
 | ii.) Ridge + RQ +  WhiteKernel                   |  DotProduct() + ConstantKernel() *   RationalQuadratic() + WhiteKernel()                                 |
